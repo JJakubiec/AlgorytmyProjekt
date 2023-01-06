@@ -50,7 +50,7 @@ namespace AlgorytmyProjekt
             new Thread(() => { executeSA(dataControllerLargeData, pathToSolutionLargeSA); }).Start();
 
             //new Thread(() => { executeClimbing(dataControllerSmallestData, pathToSolutionSmallestIHC); }).Start();
-           // new Thread(() => { executeClimbing(dataControllerSmallData, pathToSolutionSmallIHC); }).Start();
+            //new Thread(() => { executeClimbing(dataControllerSmallData, pathToSolutionSmallIHC); }).Start();
             //new Thread(() => { executeClimbing(dataControllerMediumData, pathToSolutionMediumIHC); }).Start();
             //new Thread(() => { executeClimbing(dataControllerLargeData, pathToSolutionLargeIHC); }).Start();
         }
@@ -109,153 +109,197 @@ namespace AlgorytmyProjekt
         {
             var sim = new SA(dataController);
 
-            var solutionPath = new List<int>();
-            var solutionDistance = float.MaxValue;
-            var bestFromFile = float.MaxValue;
+            var tab = new List<(NeighbourSearchMethod, TempDecreaseMethod, float, int)> {  { (NeighbourSearchMethod.Best, TempDecreaseMethod.Geometric, 2.0f, 75) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.Geometric, 2.6f, 90) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.QuadraticMultiplicative, 1.5f, 80) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.Geometric, 1.2f, 100) },
+                                                                                           //{ (NeighbourSearchMethod.Insert, TempDecreaseMethod.Geometric, 1.2f, 100) },
+                                                                                           //{ (NeighbourSearchMethod.Reverse, TempDecreaseMethod.Geometric, 1.2f, 100) },
+                                                                                           //{ (NeighbourSearchMethod.Swap, TempDecreaseMethod.Geometric, 1.2f, 100) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.QuadraticMultiplicative, 1.4f, 105) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.QuadraticMultiplicative, 0.7f, 150) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.Geometric, 2.3f, 70) },
+                                                                                           { (NeighbourSearchMethod.Best, TempDecreaseMethod.QuadraticMultiplicative, 3f, 50) }
+                                                                                           };
 
-            using (var reader = new StreamReader(pathToTxtSolutionFile))
-            {
-                string line;
-                var list = new List<int>();
-                while ((line = reader.ReadLine()) != null)
-                {
-                    list.Add(Int32.Parse(line));
-                }
+            tab.ForEach(a =>
+           {
+               var solutionPath = new List<int>();
+               var solutionDistance = float.MaxValue;
+               var bestFromFile = float.MaxValue;
 
-                bestFromFile = dataController.countPathDistance(list);
-            }
+               using (var reader = new StreamReader(pathToTxtSolutionFile))
+               {
+                   string line;
+                   var list = new List<int>();
+                   while ((line = reader.ReadLine()) != null)
+                   {
+                       list.Add(Int32.Parse(line));
+                   }
 
-            for (var x = 0; x < 1000; x++)
-            {
-                var candidatePath = sim.Execute(100, 100, TempDecreaseMethod.LinearMultiplicative, NeighbourSearchMethod.Reverse);
-                var candidateDistance = dataController.countPathDistance(candidatePath);
+                   bestFromFile = dataController.countPathDistance(list);
+               }
 
-                if (candidateDistance < solutionDistance)
-                {
-                    solutionDistance = candidateDistance;
-                    solutionPath = candidatePath;
+                //var random = new Random();
+                //var iter = random.Next(100);
+                //var temp = random.NextDouble() * 10;
+                //var tempdesc = (TempDecreaseMethod)typeof(TempDecreaseMethod).GetEnumValues().GetValue(random.Next(4));
+                //var swapMethod = (NeighbourSearchMethod)typeof(NeighbourSearchMethod).GetEnumValues().GetValue(random.Next(4));
 
-                    if (solutionDistance < bestFromFile)
-                    {
-                        bestFromFile = solutionDistance;
-                        using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
-                        {
-                            solutionPath.ForEach(i =>
-                            {
-                                writer.WriteLine(i);
-                            });
+                for (var x = 0; x < 1000; x++)
+               {
+
+                    //var candidatePath = sim.Execute(iter, (float)temp, tempdesc, swapMethod);
+                    var candidatePath = sim.Execute(a.Item4, a.Item3, a.Item2, a.Item1);
+                   var candidateDistance = dataController.countPathDistance(candidatePath);
+
+                   if (candidateDistance < solutionDistance)
+                   {
+                       solutionDistance = candidateDistance;
+                       solutionPath = candidatePath;
+
+                       if (solutionDistance < bestFromFile)
+                       {
+                           bestFromFile = solutionDistance;
+                           using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
+                           {
+                               solutionPath.ForEach(i =>
+                               {
+                                   writer.WriteLine(i);
+                               });
+                           }
+
+                            //Console.WriteLine("iter: " +iter +" temp: " + temp+ " tmepdec: " + tempdesc + " swapMethod: " + swapMethod +" | The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
                         }
 
-                        Console.WriteLine("The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                        //Console.WriteLine("Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
                     }
-
-                    Console.WriteLine("Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
-                }
-            }
-
-            Console.WriteLine("Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+               }
+               Console.WriteLine(a + " | Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+           });
         }
 
         static void executeClimbing(DataController dataController, string pathToTxtSolutionFile)
         {
             var climbing = new IHC(dataController);
 
-            var solutionPath = new List<int>();
-            var solutionDistance = float.MaxValue;
-            var bestFromFile = float.MaxValue;
+            var tab = new List<(NeighbourSelectMethod, int, int)> {  { (NeighbourSelectMethod.Random, 30, 50) },
+                                                                     { (NeighbourSelectMethod.Random, 30, 75) },
+                                                                     { (NeighbourSelectMethod.Best, 75, 75) },
+                                                                     { (NeighbourSelectMethod.Best, 20, 100) } };
 
-            using (var reader = new StreamReader(pathToTxtSolutionFile))
+            tab.ForEach(a =>
             {
-                string line;
-                var list = new List<int>();
-                while ((line = reader.ReadLine()) != null)
+
+                var solutionPath = new List<int>();
+                var solutionDistance = float.MaxValue;
+                var bestFromFile = float.MaxValue;
+
+                using (var reader = new StreamReader(pathToTxtSolutionFile))
                 {
-                    list.Add(Int32.Parse(line));
-                }
-
-                bestFromFile = dataController.countPathDistance(list);
-            }
-
-            for (var x = 0; x < 1000; x++)
-            {
-                var candidatePath = climbing.Execute(NeighbourSelectMethod.Random, 100, 100);
-                var candidateDistance = dataController.countPathDistance(candidatePath);
-
-                if (candidateDistance < solutionDistance)
-                {
-                    solutionDistance = candidateDistance;
-                    solutionPath = candidatePath;
-
-                    if (solutionDistance < bestFromFile)
+                    string line;
+                    var list = new List<int>();
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        bestFromFile = solutionDistance;
-                        using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
-                        {
-                            solutionPath.ForEach(i =>
-                            {
-                                writer.WriteLine(i);
-                            });
-                        }
-
-                        Console.WriteLine("The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                        list.Add(Int32.Parse(line));
                     }
 
-                    Console.WriteLine("Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                    bestFromFile = dataController.countPathDistance(list);
                 }
-            }
 
-            Console.WriteLine("Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+                for (var x = 0; x < 1000; x++)
+                {
+                   var candidatePath = climbing.Execute(a.Item1, a.Item2, a.Item3);
+                   var candidateDistance = dataController.countPathDistance(candidatePath);
+
+                   if (candidateDistance < solutionDistance)
+                   {
+                       solutionDistance = candidateDistance;
+                       solutionPath = candidatePath;
+
+                       if (solutionDistance < bestFromFile)
+                       {
+                           bestFromFile = solutionDistance;
+                           using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
+                           {
+                               solutionPath.ForEach(i =>
+                               {
+                                   writer.WriteLine(i);
+                               });
+                           }
+
+                           //Console.WriteLine("The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                       }
+
+                       //Console.WriteLine("Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                   }
+               }
+
+               Console.WriteLine(a + "| Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+           });
         }
 
         static void executeTabuSearch(DataController dataController, string pathToTxtSolutionFile)
         {
             var tabu = new TS(dataController);
 
-            var solutionPath = new List<int>();
-            var solutionDistance = float.MaxValue;
-            var bestFromFile = float.MaxValue;
+            var tab = new List<(SwapLimitation, StopMethod, int, int, int)> {  //{ (SwapLimitation.AllPosibilities, StopMethod.IterationWithoutImprovement, 100, 30, 400) },
+                                                                               // { (SwapLimitation.Limited, StopMethod.IterationWithoutImprovement, 10, 30, 40) },
+                                                                               // { (SwapLimitation.AllPosibilities, StopMethod.Iteration, 50, 40, 40) },
+                                                                               // { (SwapLimitation.Limited, StopMethod.Iteration, 100, 30, 50) },
+                                                                               // { (SwapLimitation.AllPosibilities, StopMethod.IterationWithoutImprovement, 10, 300, 70) },
+                                                                               // { (SwapLimitation.Limited, StopMethod.Iteration, 75, 40, 100) },
+                                                                                { (SwapLimitation.AllPosibilities, StopMethod.IterationWithoutImprovement, 1000, 30, 100) }};
 
-            using (var reader = new StreamReader(pathToTxtSolutionFile))
+            tab.ForEach(s =>
             {
-                string line;
-                var list = new List<int>();
-                while ((line = reader.ReadLine()) != null)
+
+                var solutionPath = new List<int>();
+                var solutionDistance = float.MaxValue;
+                var bestFromFile = float.MaxValue;
+
+                using (var reader = new StreamReader(pathToTxtSolutionFile))
                 {
-                    list.Add(Int32.Parse(line));
-                }
-
-                bestFromFile = dataController.countPathDistance(list);
-            }
-
-            for (var x = 0; x < 1000; x++)
-            {
-                var candidatePath = tabu.Execute(SwapLimitation.AllPosibilities, StopMethod.IterationWithoutImprovement, 1000, 30, 4000);
-                var candidateDistance = dataController.countPathDistance(candidatePath);
-
-                if (candidateDistance < solutionDistance)
-                {
-                    solutionDistance = candidateDistance;
-                    solutionPath = candidatePath;
-
-                    if (solutionDistance < bestFromFile)
+                    string line;
+                    var list = new List<int>();
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        bestFromFile = solutionDistance;
-                        using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
-                        {
-                            solutionPath.ForEach(i =>
-                            {
-                                writer.WriteLine(i);
-                            });
-                        }
-
-                        Console.WriteLine("The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                        list.Add(Int32.Parse(line));
                     }
 
-                    Console.WriteLine("Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                    bestFromFile = dataController.countPathDistance(list);
                 }
-            }
 
-            Console.WriteLine("Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+                for (var x = 0; x < 1000; x++)
+               {
+                   var candidatePath = tabu.Execute(s.Item1, s.Item2, s.Item3, s.Item4, s.Item5);
+                   var candidateDistance = dataController.countPathDistance(candidatePath);
+
+                   if (candidateDistance < solutionDistance)
+                   {
+                       solutionDistance = candidateDistance;
+                       solutionPath = candidatePath;
+
+                       if (solutionDistance < bestFromFile)
+                       {
+                           bestFromFile = solutionDistance;
+                           using (StreamWriter writer = new StreamWriter(pathToTxtSolutionFile))
+                           {
+                               solutionPath.ForEach(i =>
+                               {
+                                   writer.WriteLine(i);
+                               });
+                           }
+
+                           //Console.WriteLine(s + "| The best in file " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                       }
+
+                       //Console.WriteLine(s + "| Current improvement " + dataController.dataLength + " : Iteration: " + x + " | distance: " + candidateDistance);
+                   }
+               }
+
+               Console.WriteLine(s + "| Best in current run " + dataController.dataLength + " | distance: " + solutionDistance);
+            });
         }
     }
 }
